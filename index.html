@@ -175,6 +175,27 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .change-down{background:rgba(52,199,138,.15);color:#34c78a}
 .change-flat{background:rgba(138,143,168,.12);color:#8a8fa8}
 
+
+/* Cohort report */
+.coh-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.coh-tbl th{padding:9px 11px;text-align:center;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);white-space:nowrap}
+.coh-tbl th.left{text-align:left}
+.coh-tbl td{padding:8px 11px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:center}
+.coh-tbl td.left{text-align:left}
+.coh-tbl tr:last-child td{border-bottom:none}
+.coh-tbl tr.total-row td{background:rgba(255,255,255,.04);font-weight:600}
+.coh-cell{cursor:pointer;border-radius:5px;padding:2px 5px;transition:background .12s}
+.coh-cell:hover{background:rgba(79,142,247,.18);color:#7fb3fb}
+.coh-cell.sel{background:rgba(79,142,247,.25);color:#7fb3fb}
+.ret-pct{font-size:10px;color:var(--muted);margin-left:3px}
+.coh-panel{background:var(--card);border:1px solid var(--border2);border-radius:12px;margin:0 0 24px}
+.coh-panel-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border)}
+.coh-panel-ttl{font-size:12px;font-weight:600;color:var(--text)}
+.coh-close{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;padding:0 4px}
+.coh-close:hover{color:var(--text)}
+.yr24{color:#4f8ef7}.yr25{color:#7c5cfc}.yr26{color:#34c78a}
+.coh-section-label{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px}
+
 /* Responsive sidebar */
 @media(max-width:700px){.sidebar{display:none}.view{padding:16px}}
 
@@ -209,6 +230,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="nav-item" onclick="showView('monthcomp',this)"><span class="nav-dot" style="background:#2dd4bf"></span>Month Comparison</div>
     <div class="nav-item" onclick="showView('channelcomp',this)"><span class="nav-dot" style="background:#f0a429"></span>Channel Comparison</div>
     <div class="nav-item" onclick="showView('collcomp',this)"><span class="nav-dot" style="background:#34c78a"></span>Collection Comparison</div>
+    <div class="nav-section">Executive</div>
+    <div class="nav-item" onclick="showView('cohort',this)"><span class="nav-dot" style="background:#f0a429"></span>Executive Report</div>
     <div class="nav-section">Detail</div>
     <div class="nav-item" onclick="showView('customers',this)"><span class="nav-dot" style="background:#f05252"></span>Customers</div>
     <div class="nav-section">Data</div>
@@ -234,6 +257,120 @@ tr:hover td{background:rgba(255,255,255,.02)}
       </select>
     </div>
     <div class="badge-updated">Updated: 2026</div>
+  </div>
+
+
+  <!-- CUSTOMER COHORT / EXECUTIVE REPORT -->
+  <div class="view" id="view-cohort">
+    <!-- Filters -->
+    <div style="display:flex;gap:8px;padding:20px 32px 0;flex-wrap:wrap;align-items:center">
+      <button class="period-btn active" id="coh-btn-qtr" onclick="setCohMode('quarterly')">Quarterly</button>
+      <button class="period-btn" id="coh-btn-ytd" onclick="setCohMode('ytd')">YTD</button>
+      <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
+      <select id="coh-ch" onchange="renderCohort()">
+        <option value="all">All Channels</option>
+        <option value="BH">BH</option>
+        <option value="IR">IR</option>
+        <option value="OR">OR</option>
+      </select>
+      <select id="coh-cls" onchange="renderCohort()">
+        <option value="all">All Classes</option>
+        <option value="A+">A+</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+        <option value="D">D</option>
+        <option value="X">X</option>
+      </select>
+      <div style="margin-left:auto;font-size:11px;color:var(--faint)">Click any number to see customer names</div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid" id="coh-kpis" style="padding:16px 32px 0"></div>
+
+    <!-- Two main cards -->
+    <div class="section-row col-2" style="padding:16px 32px 0">
+      <!-- New Acquisition -->
+      <div class="card">
+        <div class="card-title">
+          New Customer Acquisition
+          <span style="font-size:10px;color:var(--faint);font-weight:400">first-ever transaction</span>
+        </div>
+        <div id="coh-new-tbl"></div>
+      </div>
+      <!-- Retention -->
+      <div class="card">
+        <div class="card-title">
+          Customer Retention &amp; Repeat Orders
+          <span style="font-size:10px;color:var(--faint);font-weight:400">returning in subsequent periods</span>
+        </div>
+        <div id="coh-ret-tbl"></div>
+      </div>
+    </div>
+
+    <!-- Quarterly retention breakdown (full width) -->
+    <div style="padding:0 32px">
+      <div class="card" style="margin-top:0">
+        <div class="card-title">Quarterly Activity by Cohort <span style="font-size:10px;color:var(--faint);font-weight:400">customers active in each quarter (unique count)</span></div>
+        <div id="coh-qtr-tbl"></div>
+      </div>
+    </div>
+
+    <!-- Customer List Panel (appears on cell click) -->
+    <div style="padding:0 32px">
+      <div id="coh-panel" class="coh-panel" style="display:none">
+        <div class="coh-panel-hdr">
+          <div class="coh-panel-ttl" id="coh-panel-title">Customers</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="coh-panel-search" placeholder="Search..." oninput="cohFilterPanel()"
+              style="background:var(--surface);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:4px 10px;font-size:11px;font-family:var(--font);outline:none;width:160px">
+            <button class="coh-close" onclick="document.getElementById('coh-panel').style.display='none'">✕</button>
+          </div>
+        </div>
+        <div id="coh-panel-body"></div>
+      </div>
+    </div>
+
+    <!-- Explorer -->
+    <div style="padding:0 32px 40px">
+      <div class="card">
+        <div class="card-title">Customer Explorer <span style="font-size:10px;color:var(--faint);font-weight:400">browse all customers by segment</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+          <select id="exp-cohort" onchange="renderCohExplorer()">
+            <option value="all">All Cohorts</option>
+            <option value="2024">2024 Cohort</option>
+            <option value="2025">New 2025</option>
+            <option value="2026">New 2026</option>
+          </select>
+          <select id="exp-active" onchange="renderCohExplorer()">
+            <option value="all">Any Period Active</option>
+            <option value="2024">Active in 2024</option>
+            <option value="2025">Active in 2025</option>
+            <option value="2026">Active in 2026</option>
+          </select>
+          <select id="exp-ch" onchange="renderCohExplorer()">
+            <option value="all">All Channels</option>
+            <option value="BH">BH</option>
+            <option value="IR">IR</option>
+            <option value="OR">OR</option>
+          </select>
+          <select id="exp-cls" onchange="renderCohExplorer()">
+            <option value="all">All Classes</option>
+            <option value="A+">A+</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="X">X</option>
+          </select>
+          <input id="exp-search" placeholder="Search customer name..."
+            style="background:var(--surface);color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;font-size:12px;font-family:var(--font);outline:none;flex:1;min-width:160px"
+            oninput="renderCohExplorer()">
+        </div>
+        <div id="coh-exp-count" style="font-size:11px;color:var(--muted);margin-bottom:8px"></div>
+        <div id="coh-exp-list"></div>
+      </div>
+    </div>
   </div>
 
   <!-- OVERVIEW -->
@@ -9094,7 +9231,7 @@ const viewTitles = {
   yoy:'Year Comparison', monthcomp:'Month Comparison',
   channelcomp:'Channel Comparison',
   collcomp:'Collection Comparison', drilldown:'Customer Drilldown',
-  customers:'Customers', upload:'Upload New Data'
+  customers:'Customers', cohort:'Executive Report — Customer Cohort', upload:'Upload New Data'
 };
 
 // ===== TOGGLE HELPERS FOR CLICKABLE LISTS =====
@@ -9158,6 +9295,7 @@ function renderView(v){
   else if(v==='collcomp') renderCollComp();
   else if(v==='drilldown') renderDrilldown();
   else if(v==='customers') renderCustTable();
+  else if(v==='cohort') renderCohort_init();
   else if(v==='upload') setUploadStep(1);
 }
 
@@ -9169,6 +9307,455 @@ function _refresh(){
 
 
 // ===== DATA =====
+
+
+// ═══════════════════════════════════════════════════════
+// EXECUTIVE REPORT – CUSTOMER COHORT ANALYSIS
+// ═══════════════════════════════════════════════════════
+
+let _cohMode = 'quarterly';
+let _cohData = null;
+let _cohPanelNums = [];
+
+window.setCohMode = function(mode){
+  _cohMode = mode;
+  ['qtr','ytd'].forEach(k=>{
+    const b = document.getElementById('coh-btn-'+k);
+    if(b) b.classList.toggle('active', (k==='qtr')===(_cohMode==='quarterly'));
+  });
+  renderCohort();
+};
+
+function getCohData(){
+  if(_cohData) return _cohData;
+  const first   = {};   // num → {year,quarter,sk}
+  const salesYQ = {};   // num → {'2025_Q1': val}
+  const salesY  = {};   // num → {2025: val}
+  const info    = {};   // num → {name,channel,cls}
+  const actYrs  = {};   // num → Set(year)
+  const actQtrs = {};   // num → Set('2025_Q1')
+
+  for(const r of RAW_DATA){
+    if(r.sales <= 0) continue;
+    const sk = r.year * 10 + +r.quarter[1];
+    if(!first[r.num] || sk < first[r.num].sk)
+      first[r.num] = {year:r.year, quarter:r.quarter, sk};
+    const yq = r.year+'_'+r.quarter;
+    salesYQ[r.num] = salesYQ[r.num]||{};
+    salesYQ[r.num][yq] = (salesYQ[r.num][yq]||0) + r.sales;
+    salesY[r.num] = salesY[r.num]||{};
+    salesY[r.num][r.year] = (salesY[r.num][r.year]||0) + r.sales;
+    if(!info[r.num]) info[r.num] = {name:r.name,channel:r.channel,cls:r.class};
+    actYrs[r.num]  = actYrs[r.num]  || new Set();  actYrs[r.num].add(r.year);
+    actQtrs[r.num] = actQtrs[r.num] || new Set();  actQtrs[r.num].add(yq);
+  }
+  const cohort = {};
+  for(const [n,fp] of Object.entries(first)) cohort[+n] = fp.year;
+  _cohData = {first, salesYQ, salesY, info, actYrs, actQtrs, cohort};
+  return _cohData;
+}
+
+function cohFilterNums(nums, D, chF, clsF){
+  return nums.filter(n=>{
+    const inf=D.info[n]; if(!inf) return false;
+    if(chF!=='all'&&inf.channel!==chF) return false;
+    if(clsF!=='all'&&inf.cls!==clsF) return false;
+    return true;
+  });
+}
+
+// Returns all nums whose first tx was in cohortYr AND pass filters
+function cohortNums(D, cy, chF, clsF){
+  return Object.entries(D.cohort)
+    .filter(([n,y])=>+y===cy)
+    .map(([n])=>+n)
+    .filter(n=>{ const i=D.info[n]; return i && (chF==='all'||i.channel===chF) && (clsF==='all'||i.cls===clsF); });
+}
+
+// Nums acquired in cohortYr in a specific quarter
+function cohortQNums(D, cy, q, chF, clsF){
+  return cohortNums(D,cy,chF,clsF).filter(n=>D.first[n]&&D.first[n].quarter===q);
+}
+
+// Nums from a set that were active in year + optional quarter
+function activeInPeriod(nums, D, yr, q){
+  return nums.filter(n=>{
+    if(q) return D.actQtrs[n]&&D.actQtrs[n].has(yr+'_'+q);
+    return D.actYrs[n]&&D.actYrs[n].has(yr);
+  });
+}
+
+// Sales sum for nums in a year (or year+quarter)
+function salesSum(nums, D, yr, q){
+  return nums.reduce((a,n)=>{
+    if(q) return a+(D.salesYQ[n]||{})[yr+'_'+q]||a;
+    return a+(D.salesY[n]||{})[yr]||a;
+  },0);
+}
+
+// Nums that ordered in 2+ distinct quarters within year
+function multiQtrInYear(nums, D, yr){
+  return nums.filter(n=>{
+    const qs = ['Q1','Q2','Q3','Q4'].filter(q=>D.actQtrs[n]&&D.actQtrs[n].has(yr+'_'+q));
+    return qs.length >= 2;
+  });
+}
+
+// Click a cell → show customer panel
+window.cohShowPanel = function(title, nums){
+  _cohPanelNums = nums||[];
+  const D = getCohData();
+  const panel = document.getElementById('coh-panel');
+  if(!panel) return;
+  panel.style.display='block';
+  document.getElementById('coh-panel-title').textContent = title+' ('+_cohPanelNums.length+')';
+  document.getElementById('coh-panel-search').value='';
+  cohRenderPanelBody(_cohPanelNums, D);
+  setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
+};
+
+function cohRenderPanelBody(nums, D){
+  const chColors = {IR:'#4f8ef7',OR:'#f472b6',BH:'#34c78a'};
+  const clsBg    = {'A+':'rgba(79,142,247,.15)','A':'rgba(79,142,247,.1)','B':'rgba(52,199,138,.12)','C':'rgba(240,164,41,.12)','D':'rgba(240,82,82,.12)'};
+  const list = nums.map(n=>{
+    const i=D.info[n]||{};
+    const yrs=[...(D.actYrs[n]||[])].sort();
+    const ts=Object.values(D.salesY[n]||{}).reduce((a,b)=>a+b,0);
+    return{num:n,name:i.name||n,ch:i.channel||'',cls:i.cls||'',cy:D.cohort[n],yrs,ts};
+  }).sort((a,b)=>b.ts-a.ts);
+  if(!list.length){
+    document.getElementById('coh-panel-body').innerHTML='<div style="padding:14px 18px;color:var(--muted);font-size:12px">No customers in this segment.</div>';
+    return;
+  }
+  document.getElementById('coh-panel-body').innerHTML=
+    '<div style="overflow-y:auto;max-height:320px">'+
+    '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+    '<thead><tr style="background:var(--surface)">'+
+    '<th style="padding:8px 12px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border)">#</th>'+
+    '<th style="padding:8px 12px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border)">Customer</th>'+
+    '<th style="padding:8px 12px;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border)">Ch</th>'+
+    '<th style="padding:8px 12px;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border)">Class</th>'+
+    '<th style="padding:8px 12px;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border)">Cohort</th>'+
+    '<th style="padding:8px 12px;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border)">Active&nbsp;Yrs</th>'+
+    '<th style="padding:8px 12px;text-align:right;color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border)">Sales (SAR)</th>'+
+    '</tr></thead><tbody>'+
+    list.map((c,i)=>
+      '<tr style="'+(i%2===0?'':'background:rgba(255,255,255,.02)')+'">' +
+      '<td style="padding:6px 12px;color:var(--faint);font-family:var(--mono)">'+(i+1)+'</td>'+
+      '<td style="padding:6px 12px;max-width:220px;overflow:hidden;text-overflow:ellipsis">'+c.name+'</td>'+
+      '<td style="padding:6px 12px;text-align:center"><span style="font-size:10px;background:'+(chColors[c.ch]||'#aaa')+'22;color:'+(chColors[c.ch]||'#aaa')+';padding:1px 7px;border-radius:8px">'+c.ch+'</span></td>'+
+      '<td style="padding:6px 12px;text-align:center"><span style="font-size:10px;background:'+(clsBg[c.cls]||'rgba(138,143,168,.12)')+';color:var(--text);padding:1px 7px;border-radius:8px">'+c.cls+'</span></td>'+
+      '<td style="padding:6px 12px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--accent)">'+c.cy+'</td>'+
+      '<td style="padding:6px 12px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--muted)">'+c.yrs.join(', ')+'</td>'+
+      '<td style="padding:6px 12px;text-align:right;font-family:var(--mono)">'+fmtK(c.ts)+'</td>'+
+      '</tr>'
+    ).join('')+
+    '</tbody></table></div>';
+}
+
+window.cohFilterPanel = function(){
+  const q=(document.getElementById('coh-panel-search')||{}).value.toLowerCase();
+  const D=getCohData();
+  const filtered=q?_cohPanelNums.filter(n=>(D.info[n]||{}).name.toLowerCase().includes(q)):_cohPanelNums;
+  cohRenderPanelBody(filtered,D);
+};
+
+function mkCohCell(title, nums, colorCls){
+  const n=nums.length;
+  if(!n) return '<span style="color:var(--faint)">—</span>';
+  return '<span class="coh-cell'+(colorCls?' '+colorCls:'')+'" onclick="cohShowPanel('+JSON.stringify(title)+','+JSON.stringify(nums)+')" title="Click to see names">'+n+'</span>';
+}
+
+function mkCohSales(nums, D, yr, q){
+  const s = salesSum(nums,D,yr,q);
+  return s>0?'<span style="color:var(--muted);font-size:11px;font-family:var(--mono)">'+fmtK(s)+'</span>':'<span style="color:var(--faint)">—</span>';
+}
+
+function renderCohort(){
+  const D = getCohData();
+  const chF  = (document.getElementById('coh-ch') ||{}).value||'all';
+  const clsF = (document.getElementById('coh-cls')||{}).value||'all';
+  const quarters=['Q1','Q2','Q3','Q4'];
+  const years=[2024,2025,2026];
+
+  // Cohorts filtered
+  const c24 = cohortNums(D,2024,chF,clsF);
+  const c25 = cohortNums(D,2025,chF,clsF);
+  const c26 = cohortNums(D,2026,chF,clsF);
+
+  // ──── KPIs ────
+  const ret2425 = activeInPeriod(c24,D,2025);
+  const ret2526 = activeInPeriod(c25,D,2026);
+  const ret2426 = activeInPeriod(c24,D,2026);
+  const s25n = salesSum(c25,D,2025);
+  const s26n = salesSum(c26,D,2026);
+  const kpiDiv = document.getElementById('coh-kpis');
+  if(kpiDiv) kpiDiv.innerHTML = [
+    {lbl:'New Customers 2025',val:c25.length,sub:'SAR '+fmtK(s25n),col:'accent'},
+    {lbl:'New Customers 2026',val:c26.length,sub:'SAR '+fmtK(s26n),col:'green'},
+    {lbl:'2024 Cohort → Active 2025',val:ret2425.length,sub:c24.length?+(ret2425.length/c24.length*100).toFixed(0)+'% of 2024 cohort':'—',col:'amber'},
+    {lbl:'New 2025 → Active 2026',val:ret2526.length,sub:c25.length?+(ret2526.length/c25.length*100).toFixed(0)+'% of new-2025':'—',col:'red'},
+  ].map(k=>'<div class="kpi '+k.col+'"><div class="kpi-label">'+k.lbl+'</div><div class="kpi-val" style="font-size:22px">'+k.val+'</div><div class="kpi-sub">'+k.sub+'</div></div>').join('');
+
+  // ──── New Acquisition Table ────
+  const newTbl = document.getElementById('coh-new-tbl');
+  if(newTbl){
+    const cohDefs = [
+      {yr:2024, nums:c24, label:'2024 Base', clr:'yr24'},
+      {yr:2025, nums:c25, label:'New 2025', clr:'yr25', note:'vs 2024'},
+      {yr:2026, nums:c26, label:'New 2026', clr:'yr26', note:'vs 2024+2025'},
+    ];
+    if(_cohMode==='quarterly'){
+      let h = '<table class="coh-tbl"><thead><tr>'+
+        '<th class="left">Cohort</th>'+
+        quarters.map(q=>'<th colspan="2">'+q+'</th>').join('')+
+        '<th colspan="2">TOTAL</th></tr>'+
+        '<tr><th class="left"></th>'+
+        quarters.map(()=>'<th>Cust</th><th>Sales</th>').join('')+
+        '<th>Cust</th><th>Sales</th></tr></thead><tbody>';
+      for(const cd of cohDefs){
+        const rowNums = cohortNums(D,cd.yr,chF,clsF);
+        const totalSales = salesSum(rowNums,D,cd.yr);
+        h += '<tr><td class="left"><span class="'+cd.clr+'" style="font-weight:600">'+cd.label+'</span>'+(cd.note?'<span style="color:var(--faint);font-size:10px"> ('+cd.note+')</span>':'')+' <span style="color:var(--faint);font-size:10px">('+rowNums.length+')</span></td>';
+        for(const q of quarters){
+          const qNums = cohortQNums(D,cd.yr,q,chF,clsF);
+          h += '<td>'+mkCohCell(cd.label+' — '+q,qNums,cd.clr)+'</td>';
+          h += '<td>'+mkCohSales(qNums,D,cd.yr,q)+'</td>';
+        }
+        h += '<td><b>'+rowNums.length+'</b></td>';
+        h += '<td><span style="font-family:var(--mono);font-size:11px">'+fmtK(totalSales)+'</span></td>';
+        h += '</tr>';
+      }
+      h += '</tbody></table>';
+      newTbl.innerHTML = h;
+    } else {
+      // YTD mode
+      let h = '<table class="coh-tbl"><thead><tr><th class="left">Cohort</th><th>Customers</th><th>Sales (SAR)</th><th>Avg Sales/Cust</th></tr></thead><tbody>';
+      for(const cd of cohDefs){
+        const rowNums = cohortNums(D,cd.yr,chF,clsF);
+        const ts = salesSum(rowNums,D,cd.yr);
+        const avg = rowNums.length>0?Math.round(ts/rowNums.length):0;
+        h += '<tr><td class="left"><span class="'+cd.clr+'" style="font-weight:600">'+cd.label+'</span>'+(cd.note?'<span style="color:var(--faint);font-size:10px"> ('+cd.note+')</span>':'')+' </td>';
+        h += '<td>'+mkCohCell(cd.label,rowNums,cd.clr)+'</td>';
+        h += '<td><span style="font-family:var(--mono);font-size:12px">'+fmtK(ts)+'</span></td>';
+        h += '<td><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">'+fmtK(avg)+'</span></td>';
+        h += '</tr>';
+      }
+      h += '</tbody></table>';
+      newTbl.innerHTML = h;
+    }
+  }
+
+  // ──── Retention Table ────
+  const retTbl = document.getElementById('coh-ret-tbl');
+  if(retTbl){
+    const pct=(n,d)=>d>0?'<span class="ret-pct">('++(n/d*100).toFixed(0)+'%)</span>':'';
+    if(_cohMode==='quarterly'){
+      // For each cohort, show active count per (year, quarter)
+      const rows=[
+        {label:'2024 Cohort', nums:c24, clr:'yr24', startYr:2024},
+        {label:'New 2025',    nums:c25, clr:'yr25', startYr:2025},
+        {label:'New 2026',    nums:c26, clr:'yr26', startYr:2026},
+      ];
+      // Columns: each year-quarter combination
+      const periods=[];
+      for(const yr of [2024,2025,2026])
+        for(const q of quarters) periods.push({yr,q,label:yr+' '+q});
+
+      let h='<div style="overflow-x:auto"><table class="coh-tbl" style="min-width:600px"><thead>'+
+        '<tr><th class="left">Cohort</th>'+
+        [2024,2025,2026].map(yr=>'<th colspan="4" style="border-left:1px solid var(--border2)"><span class="yr'+yr+'">'+yr+'</span></th>').join('')+
+        '<th>Repeat<br>Orders</th></tr>'+
+        '<tr><th class="left"></th>'+
+        [2024,2025,2026].map(()=>quarters.map(q=>'<th>'+q+'</th>').join('')).join('')+
+        '<th style="font-size:10px">2+ Qtrs</th></tr>'+
+        '</thead><tbody>';
+      for(const row of rows){
+        h+='<tr><td class="left"><span class="'+row.clr+'" style="font-weight:600">'+row.label+'</span> <span style="color:var(--faint);font-size:10px">('+row.nums.length+')</span></td>';
+        for(const yr of [2024,2025,2026]){
+          for(const q of quarters){
+            // Only show periods >= cohort start year
+            if(yr < row.startYr){h+='<td style="color:var(--faint)">—</td>'; continue;}
+            const act=activeInPeriod(row.nums,D,yr,q);
+            h+='<td>'+mkCohCell(row.label+' active '+yr+' '+q,act,row.clr)+pct(act.length,row.nums.length)+'</td>';
+          }
+        }
+        const multiQ = multiQtrInYear(row.nums,D,row.startYr);
+        h+='<td><b>'+mkCohCell(row.label+' repeat orders in '+row.startYr,multiQ,row.clr)+'</b>'+pct(multiQ.length,row.nums.length)+'</td>';
+        h+='</tr>';
+      }
+      h+='</tbody></table></div>';
+      retTbl.innerHTML=h;
+    } else {
+      // YTD mode: year-level retention
+      let h='<table class="coh-tbl"><thead><tr>'+
+        '<th class="left">Cohort</th><th>Size</th>'+
+        '<th><span class="yr24">2024</span></th>'+
+        '<th><span class="yr25">2025</span></th>'+
+        '<th><span class="yr26">2026</span></th>'+
+        '<th>Repeat<br>Orders</th>'+
+        '</tr></thead><tbody>';
+      const rows2=[
+        {label:'2024 Cohort',nums:c24,clr:'yr24',startYr:2024},
+        {label:'New 2025',   nums:c25,clr:'yr25',startYr:2025},
+        {label:'New 2026',   nums:c26,clr:'yr26',startYr:2026},
+      ];
+      for(const row of rows2){
+        h+='<tr><td class="left"><span class="'+row.clr+'" style="font-weight:600">'+row.label+'</span></td>';
+        h+='<td><b>'+row.nums.length+'</b></td>';
+        for(const yr of [2024,2025,2026]){
+          if(yr<row.startYr){h+='<td style="color:var(--faint)">—</td>'; continue;}
+          const act=activeInPeriod(row.nums,D,yr);
+          h+='<td>'+mkCohCell(row.label+' active in '+yr,act,row.clr)+pct(act.length,row.nums.length)+'</td>';
+        }
+        const mq=multiQtrInYear(row.nums,D,row.startYr);
+        h+='<td>'+mkCohCell(row.label+' repeat orders',mq,row.clr)+pct(mq.length,row.nums.length)+'</td>';
+        h+='</tr>';
+      }
+      h+='</tbody></table>';
+      retTbl.innerHTML=h;
+    }
+  }
+
+  // ──── Quarterly Activity Heatmap ────
+  const qtrTbl = document.getElementById('coh-qtr-tbl');
+  if(qtrTbl){
+    const allCohorts=[
+      {label:'2024 Cohort',nums:c24,clr:'yr24',yr:2024},
+      {label:'New 2025',   nums:c25,clr:'yr25',yr:2025},
+      {label:'New 2026',   nums:c26,clr:'yr26',yr:2026},
+    ];
+    // Columns: all year-quarter combos in data
+    const periods=[];
+    for(const yr of [2024,2025,2026])
+      for(const q of quarters) periods.push({yr,q});
+
+    let h='<div style="overflow-x:auto"><table class="coh-tbl" style="min-width:900px"><thead>'+
+      '<tr><th class="left" rowspan="2">Cohort</th><th rowspan="2">Size</th>'+
+      [2024,2025,2026].map(yr=>'<th colspan="4" style="border-left:1px solid var(--border2)"><span class="yr'+yr+'">'+yr+'</span></th>').join('')+
+      '</tr><tr>'+
+      [2024,2025,2026].map(()=>quarters.map(q=>'<th>'+q+'</th>').join('')).join('')+
+      '</tr></thead><tbody>';
+
+    for(const row of allCohorts){
+      h+='<tr><td class="left"><span class="'+row.clr+'" style="font-weight:600">'+row.label+'</span></td>';
+      h+='<td>'+row.nums.length+'</td>';
+      let prevSales = null;
+      for(const yr of [2024,2025,2026]){
+        for(const q of quarters){
+          if(yr < row.yr){ h+='<td style="background:rgba(0,0,0,.15);color:var(--faint)">—</td>'; continue; }
+          const act=activeInPeriod(row.nums,D,yr,q);
+          const s=salesSum(act,D,yr,q);
+          const ratio=row.nums.length>0?act.length/row.nums.length:0;
+          // Heat colour: 0→transparent, 1→var(--accent)
+          const alpha=(ratio*0.6).toFixed(2);
+          const cellStyle='background:rgba(79,142,247,'+alpha+')';
+          h+='<td style="'+cellStyle+'">'+
+            mkCohCell(row.label+' in '+yr+' '+q,act,row.clr)+
+            '<br><span style="font-size:9px;color:rgba(255,255,255,.5)">'+fmtK(s)+'</span>'+
+            '</td>';
+        }
+      }
+      h+='</tr>';
+    }
+    // Also show: "Returning" rows — 2024 cohort customers active in year Y
+    // Returning 2024→2025
+    const retDefs=[
+      {label:'2024 → 2025 returns', nums:activeInPeriod(c24,D,2025), clr:'yr25', note:'2024 cohort back in 2025', startYr:2025},
+      {label:'2024 → 2026 returns', nums:activeInPeriod(c24,D,2026), clr:'yr26', note:'2024 cohort back in 2026', startYr:2026},
+      {label:'2025 New → 2026',     nums:activeInPeriod(c25,D,2026), clr:'yr26', note:'new-2025 active in 2026',  startYr:2026},
+    ];
+    h+='<tr><td colspan="'+(2+12)+'" style="padding:0;height:1px;background:var(--border2)"></td></tr>';
+    for(const row of retDefs){
+      h+='<tr><td class="left" style="color:var(--muted)">↩ '+row.label+'</td>';
+      h+='<td>'+row.nums.length+'</td>';
+      for(const yr of [2024,2025,2026]){
+        for(const q of quarters){
+          if(yr < row.startYr){ h+='<td style="background:rgba(0,0,0,.15);color:var(--faint)">—</td>'; continue; }
+          const act=activeInPeriod(row.nums,D,yr,q);
+          const s=salesSum(act,D,yr,q);
+          const ratio=row.nums.length>0?act.length/row.nums.length:0;
+          const alpha=(ratio*0.5).toFixed(2);
+          h+='<td style="background:rgba(124,92,252,'+alpha+')">' +
+            mkCohCell(row.label+' '+yr+' '+q,act)+
+            '<br><span style="font-size:9px;color:rgba(255,255,255,.5)">'+fmtK(s)+'</span>'+
+            '</td>';
+        }
+      }
+      h+='</tr>';
+    }
+    h+='</tbody></table></div>';
+    qtrTbl.innerHTML=h;
+  }
+
+  // Render explorer too if already visible
+  renderCohExplorer();
+}
+
+// ──── Customer Explorer ────
+function renderCohExplorer(){
+  const D = getCohData();
+  const cohF   = (document.getElementById('exp-cohort')||{}).value||'all';
+  const actF   = (document.getElementById('exp-active')||{}).value||'all';
+  const chF    = (document.getElementById('exp-ch')    ||{}).value||'all';
+  const clsF   = (document.getElementById('exp-cls')   ||{}).value||'all';
+  const qStr   = ((document.getElementById('exp-search')||{}).value||'').toLowerCase();
+
+  const allNums = Object.keys(D.cohort).map(Number);
+  const filtered = allNums.filter(n=>{
+    const inf=D.info[n]; if(!inf) return false;
+    if(cohF!=='all' && +D.cohort[n]!==+cohF) return false;
+    if(actF!=='all' && !(D.actYrs[n]&&D.actYrs[n].has(+actF))) return false;
+    if(chF !=='all' && inf.channel!==chF) return false;
+    if(clsF!=='all' && inf.cls!==clsF) return false;
+    if(qStr && !inf.name.toLowerCase().includes(qStr)) return false;
+    return true;
+  });
+
+  const countEl = document.getElementById('coh-exp-count');
+  if(countEl) countEl.textContent = filtered.length+' customer'+(filtered.length!==1?'s':'');
+
+  const listEl = document.getElementById('coh-exp-list');
+  if(!listEl) return;
+
+  const chColors = {IR:'#4f8ef7',OR:'#f472b6',BH:'#34c78a'};
+  const clsBg={'A+':'rgba(79,142,247,.15)','A':'rgba(79,142,247,.1)','B':'rgba(52,199,138,.12)','C':'rgba(240,164,41,.12)','D':'rgba(240,82,82,.12)'};
+  const sorted = filtered.map(n=>{
+    const i=D.info[n]||{};
+    const yrs=[...(D.actYrs[n]||[])].sort();
+    const ts=Object.values(D.salesY[n]||{}).reduce((a,b)=>a+b,0);
+    return{num:n,name:i.name||n,ch:i.channel||'',cls:i.cls||'',cy:D.cohort[n],yrs,ts};
+  }).sort((a,b)=>b.ts-a.ts);
+
+  if(!sorted.length){
+    listEl.innerHTML='<div style="padding:16px;color:var(--muted);font-size:12px;text-align:center">No customers match the selected filters.</div>';
+    return;
+  }
+
+  listEl.innerHTML='<div style="overflow-y:auto;max-height:420px">'+
+    '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+    '<thead><tr style="background:var(--surface);position:sticky;top:0">'+
+    ['#','Customer','Channel','Class','Cohort','Active Years','Total Sales'].map(h=>'<th style="padding:8px 12px;text-align:'+(h==='#'||h==='Total Sales'?'right':'left')+';color:var(--muted);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">'+h+'</th>').join('')+
+    '</tr></thead><tbody>'+
+    sorted.map((c,i)=>
+      '<tr style="cursor:default;'+(i%2?'background:rgba(255,255,255,.015)':'')+'">' +
+      '<td style="padding:6px 12px;text-align:right;color:var(--faint);font-family:var(--mono);font-size:11px">'+(i+1)+'</td>'+
+      '<td style="padding:6px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+c.name+'">'+c.name+'</td>'+
+      '<td style="padding:6px 12px;text-align:center"><span style="font-size:10px;background:'+(chColors[c.ch]||'#8a8fa8')+'22;color:'+(chColors[c.ch]||'#8a8fa8')+';padding:1px 7px;border-radius:8px">'+c.ch+'</span></td>'+
+      '<td style="padding:6px 12px;text-align:center"><span style="font-size:10px;background:'+(clsBg[c.cls]||'rgba(138,143,168,.12)')+';color:var(--text);padding:1px 7px;border-radius:8px">'+c.cls+'</span></td>'+
+      '<td style="padding:6px 12px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--accent)">'+c.cy+'</td>'+
+      '<td style="padding:6px 12px;font-family:var(--mono);font-size:11px;color:var(--muted)">'+c.yrs.join(', ')+'</td>'+
+      '<td style="padding:6px 12px;text-align:right;font-family:var(--mono)">'+fmtK(c.ts)+'</td>'+
+      '</tr>'
+    ).join('')+
+    '</tbody></table></div>';
+}
+
+function renderCohort_init(){
+  _cohData = null;
+  renderCohort();
+}
+
 
 // Init
 initDrilldownDropdown();
