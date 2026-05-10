@@ -1,11 +1,4 @@
-<!DOCTY// === GLOBAL FUNCTION SHIMS (defined immediately so onclick handlers work) ===
-// These forward calls to the real implementations once the script finishes loading
-var _pendingCalls = [];
-var _ready = false;
-function showView(v,el){ if(_ready) _showView(v,el); else _pendingCalls.push(['showView',v,el]); }
-function refresh(){ if(_ready) _refresh(); else _pendingCalls.push(['refresh']); }
-
-PE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
