@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AR Analytics Dashboard</title>
+<meta name="description" content="Accounts Receivable Analytics Dashboard — Sales, DSO, Collections & Customer Cohort Analysis (2024–2026)">
+<meta name="theme-color" content="#0d0f14">
+<title>AR Analytics Dashboard · 2024–2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 :root {
   --bg: #0d0f14;
@@ -27,8 +28,8 @@
   --red: #f05252;
   --pink: #f472b6;
   --teal: #2dd4bf;
-  --font: 'DM Sans', sans-serif;
-  --mono: 'DM Mono', monospace;
+  --font: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'DM Mono', 'Fira Mono', 'Cascadia Code', monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh}
@@ -196,6 +197,32 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .yr24{color:#4f8ef7}.yr25{color:#7c5cfc}.yr26{color:#34c78a}
 .coh-section-label{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;padding:10px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px}
 
+
+/* Mobile sidebar toggle */
+@media(max-width:700px){
+  .sidebar{position:fixed;top:0;left:0;height:100vh;z-index:100;transform:translateX(-100%);transition:transform .25s ease;display:flex!important}
+  .sidebar.open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,.5)}
+  #sidebar-close{display:block!important}
+  .shell{flex-direction:column}
+  .view{padding:16px 16px 32px}
+  .topbar{padding:14px 16px 0}
+  #sidebar-toggle{display:flex}
+}
+@media(min-width:701px){
+  #sidebar-toggle{display:none}
+  .sidebar{transform:none!important;display:flex!important}
+}
+
+/* Scrollbar polish */
+* { scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+
+/* Print styles */
+@media print {
+  .sidebar,.topbar{display:none}
+  .view{display:block!important;padding:0}
+  .view:not(.active){display:none!important}
+}
+
 /* Responsive sidebar */
 @media(max-width:700px){.sidebar{display:none}.view{padding:16px}}
 
@@ -217,32 +244,40 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <!-- Sidebar -->
 <nav class="sidebar">
   <div class="brand">
-    <div class="brand-name">AR Analytics</div>
-    <div class="brand-sub" id="brand-sub">AR 2024 – 2026</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="brand-name">AR Analytics</div>
+        <div class="brand-sub" id="brand-sub">2024 – 2026</div>
+      </div>
+      <button id="sidebar-close" onclick="toggleSidebar()" title="Close sidebar"
+        style="display:none;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
+    </div>
   </div>
   <div class="nav">
     <div class="nav-section">Overview</div>
     <div class="nav-item active" onclick="showView('overview',this)"><span class="nav-dot" style="background:#4f8ef7"></span>Summary</div>
     <div class="nav-item" onclick="showView('trend',this)"><span class="nav-dot" style="background:#7c5cfc"></span>DSO Trend</div>
-    <div class="nav-item" onclick="showView('drilldown',this)"><span class="nav-dot" style="background:#f0a429"></span>Customer Drilldown</div>
+    <div class="nav-item" onclick="showView('drilldown',this)"><span class="nav-dot" style="background:#fb923c"></span>Customer Drilldown</div>
     <div class="nav-section">Comparison</div>
     <div class="nav-item" onclick="showView('yoy',this)"><span class="nav-dot" style="background:#f472b6"></span>Year Comparison</div>
     <div class="nav-item" onclick="showView('monthcomp',this)"><span class="nav-dot" style="background:#2dd4bf"></span>Month Comparison</div>
     <div class="nav-item" onclick="showView('channelcomp',this)"><span class="nav-dot" style="background:#f0a429"></span>Channel Comparison</div>
     <div class="nav-item" onclick="showView('collcomp',this)"><span class="nav-dot" style="background:#34c78a"></span>Collection Comparison</div>
     <div class="nav-section">Executive</div>
-    <div class="nav-item" onclick="showView('cohort',this)"><span class="nav-dot" style="background:#f0a429"></span>Executive Report</div>
+    <div class="nav-item" onclick="showView('cohort',this)"><span class="nav-dot" style="background:#e879f9"></span>Executive Report</div>
     <div class="nav-section">Detail</div>
     <div class="nav-item" onclick="showView('customers',this)"><span class="nav-dot" style="background:#f05252"></span>Customers</div>
     <div class="nav-section">Data</div>
-    <div class="nav-item" onclick="showView('upload',this)"><span class="nav-dot" style="background:#34c78a"></span>Upload New Data</div>
+    <div class="nav-item" onclick="showView('upload',this)"><span class="nav-dot" style="background:#34c78a"></span>Refresh Data</div>
   </div>
-  <div class="sidebar-footer">AR Report · Confidential</div>
+  <div class="sidebar-footer" id="sidebar-footer">AR Analytics Dashboard</div>
 </nav>
 
 <!-- Main -->
 <div class="main">
   <div class="topbar">
+    <button id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle navigation"
+      style="background:none;border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-size:16px;cursor:pointer;padding:5px 10px;line-height:1;flex-shrink:0">☰</button>
     <div class="page-title" id="page-title">Summary Overview</div>
     <div class="filters" id="global-filters">
       <select id="g-year" onchange="refresh()">
@@ -256,7 +291,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
         <option value="monthly">Monthly</option>
       </select>
     </div>
-    <div class="badge-updated">Updated: 2026</div>
+    <div class="badge-updated" id="badge-updated">Data through May 2026</div>
   </div>
 
 
@@ -9231,7 +9266,7 @@ const viewTitles = {
   yoy:'Year Comparison', monthcomp:'Month Comparison',
   channelcomp:'Channel Comparison',
   collcomp:'Collection Comparison', drilldown:'Customer Drilldown',
-  customers:'Customers', cohort:'Executive Report — Customer Cohort', upload:'Upload New Data'
+  customers:'Customers', cohort:'Executive Report — Customer Cohort', upload:'Refresh Data — Upload New Export'
 };
 
 // ===== TOGGLE HELPERS FOR CLICKABLE LISTS =====
@@ -9316,6 +9351,24 @@ function _refresh(){
 let _cohMode = 'quarterly';
 let _cohData = null;
 let _cohPanelNums = [];
+
+
+window.toggleSidebar = function(){
+  const sb = document.querySelector('.sidebar');
+  if(!sb) return;
+  sb.classList.toggle('open');
+};
+// Close sidebar on nav-item click (mobile)
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('.nav-item').forEach(function(el){
+    el.addEventListener('click', function(){
+      if(window.innerWidth <= 700){
+        const sb = document.querySelector('.sidebar');
+        if(sb) sb.classList.remove('open');
+      }
+    });
+  });
+});
 
 window.setCohMode = function(mode){
   _cohMode = mode;
@@ -9759,6 +9812,21 @@ function renderCohort_init(){
 
 // Init
 initDrilldownDropdown();
+
+// Set dynamic "Data through" badge
+(function(){
+  const months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let maxYr = 0, maxMon = 0;
+  RAW_DATA.forEach(r=>{ if(r.year>maxYr||(r.year===maxYr&&r.month>maxMon)){maxYr=r.year;maxMon=r.month;} });
+  const allYears = [...new Set(RAW_DATA.map(r=>r.year))].sort();
+  const badge = document.getElementById('badge-updated');
+  if(badge) badge.textContent = 'Data through '+months[maxMon]+' '+maxYr;
+  const sub = document.getElementById('brand-sub');
+  if(sub) sub.textContent = allYears[0]+' – '+allYears[allYears.length-1];
+  const foot = document.getElementById('sidebar-footer');
+  if(foot) foot.textContent = allYears[0]+'–'+allYears[allYears.length-1]+' · AR Analytics';
+})();
+
 renderOverview();
 _ready = true;
 _pendingCalls.forEach(function(fn){ if(typeof fn==='function') fn(); });
